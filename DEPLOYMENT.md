@@ -4,50 +4,51 @@
 - GitHub account with this repository pushed
 - Render account (free at https://render.com)
 
+## ✅ What's Fixed
+- **Removed Git LFS**: No more large file tracking issues
+- **Build-time Training**: `train_model.py` automatically trains the model during Render deployment
+- **Auto-Generated Model**: `engine_model.pkl` is created fresh on each deploy (no sync issues)
+
 ## Step-by-Step Deployment
 
-### 1. **Push Code to GitHub**
-```bash
-git init
-git add .
-git commit -m "Initial commit - Engine Health Model API"
-git remote add origin https://github.com/YOUR_USERNAME/engine-health-model-api.git
-git push -u origin main
-```
+### 1. **Code is Already Pushed** ✓
+Your latest commit fixed the Git LFS issue. The model will be trained automatically.
 
-### 2. **Create Render Account & Connect GitHub**
-- Go to https://render.com
-- Sign up with GitHub
-- Authorize Render to access your GitHub repositories
-
-### 3. **Create a New Web Service**
+### 2. **Create/Update on Render**
+- Go to https://render.com home
+- If you have an existing failed deployment:
+  - Go to your service → **"Settings"** → **"Delete Service"**
+  - Then create a new one
 - Click **"New +"** → **"Web Service"**
-- Select your GitHub repository
+- Select your GitHub repository: `Vehixa-ML-Model`
 - Configure as follows:
 
 | Setting | Value |
 |---------|-------|
 | **Name** | engine-health-api |
 | **Environment** | Python 3 |
-| **Build Command** | `pip install -r requirements.txt` |
+| **Region** | US East (or closest) |
+| **Branch** | main |
+| **Build Command** | `pip install -r requirements.txt && python train_model.py` |
 | **Start Command** | `uvicorn app:app --host 0.0.0.0 --port 8000` |
-| **Plan** | Free (or Starter if you need more resources) |
+| **Plan** | Free |
 
-### 4. **Deploy**
+### 3. **Deploy**
 - Click **"Create Web Service"**
-- Render will automatically build and deploy
-- You'll get a URL like: `https://engine-health-api.onrender.com`
+- Render will:
+  1. Install dependencies
+  2. Train the RandomForest model (2-3 min)
+  3. Start the FastAPI server
+- You'll get a URL: `https://engine-health-api.onrender.com`
 
 ## Testing the Deployment
 
-Once deployed, test the API:
-
 ```bash
 # Health check
-curl https://engine-health-api.onrender.com/
+curl https://your-service.onrender.com/
 
 # Make a prediction
-curl -X POST https://engine-health-api.onrender.com/predict \
+curl -X POST https://your-service.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{
     "engine_rpm": 1200,
@@ -59,42 +60,87 @@ curl -X POST https://engine-health-api.onrender.com/predict \
   }'
 ```
 
+## Expected First Deploy Output
+
+```
+==> Building...
+==> Step 1: Installing dependencies
+pip install -r requirements.txt
+...
+Successfully installed scikit-learn, pandas, numpy, ...
+
+==> Step 2: Training model
+python train_model.py
+DataFrame loaded and columns cleaned...
+RandomForestClassifier model trained successfully...
+✓ Model trained and saved as engine_model.pkl
+
+==> Starting service
+INFO:     Uvicorn running on http://0.0.0.0:8000
+```
+
 ## Important Notes
 
 ⚠️ **Free Tier Limitations:**
-- Auto-spinning down after 15 minutes of inactivity
-- Limited memory (~512MB)
+- Auto-spins down after 15 mins of inactivity
+- Limited memory (~512MB) - training takes 2-3 min
 - Slower performance
-- For production, upgrade to Starter plan ($7/month)
+- For production, upgrade to **Starter ($7/month)** or higher
 
-📦 **Model File:**
-- Ensure `engine_model.pkl` is committed to GitHub
-- If it's too large (>100MB), use Git LFS or upload separately
+✅ **Model Training:**
+- `train_model.py` runs during each build
+- Uses the same `engine_data.csv` included in the repo
+- Takes ~2-3 minutes on Render servers
+- Model is fresh and ready on each deployment
 
-✅ **Environment Variables:**
-- Add any API keys via Render dashboard → Environment Variables
-
-## Auto-Redeployment
-Render automatically redeploys when you push to GitHub. To disable:
-- Service Settings → Auto-Deploy: Off
-
-## Local Testing Before Deployment
-```bash
-uvicorn app:app --reload
-# Visit http://localhost:8000/docs for API documentation
-```
+🔄 **Auto-Redeployment:**
+- New commits to `main` branch auto-trigger redeployment
+- Model gets retrained automatically
 
 ## Troubleshooting
 
-**"Build Failed"**
-- Check logs in Render dashboard
-- Verify requirements.txt is correct
-- Ensure all imports work locally first
+**"Build Failed - ModuleNotFoundError"**
+- Check `requirements.txt` has all dependencies
+- Run locally: `pip install -r requirements.txt && python train_model.py`
 
-**"Service Keeps Spinning Down"**
-- Upgrade from Free to Starter plan
-- Or use a monitoring service to keep it alive
+**"Model training timeout"**
+- If training takes >10 min, upgrade to Starter plan
+- Or reduce dataset size in `train_model.py`
 
-**"Model Not Found"**
-- Commit `engine_model.pkl` to GitHub
-- Check file path in `app.py`
+**"Service keeps spinning down"**
+- Free tier limitation
+- Use a monitoring service (e.g., UptimeRobot) to ping it every 10 min
+- Or upgrade plan
+
+**"Prediction returns 404"**
+- Ensure deployment completed successfully
+- Check if model was created: look for "✓ Model trained" in logs
+- Check your JSON payload matches required fields
+
+## Local Testing Before Deployment
+
+```bash
+# Train model locally
+python train_model.py
+
+# Test API
+uvicorn app:app --reload
+
+# Visit: http://localhost:8000/docs (interactive API docs)
+```
+
+## File Structure
+
+```
+.
+├── app.py                    # FastAPI application
+├── train_model.py            # Training script (runs at build time)
+├── vehicle_health_analytics.py  # Original training code
+├── engine_data.csv           # Training dataset
+├── requirements.txt          # Python dependencies
+├── render.yaml               # Render configuration
+├── Procfile                  # Heroku-compatible config
+├── README.md
+└── Vehicle_health.ipynb      # Jupyter notebook for analysis
+```
+
