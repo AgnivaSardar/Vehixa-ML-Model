@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import pandas as pd
 import numpy as np
+import os
 
 app = FastAPI()
 
@@ -16,7 +17,11 @@ app.add_middleware(
 )
 
 # Load trained model
-model = joblib.load("engine_model.pkl")
+MODEL_PATH = "engine_model.pkl"
+if os.path.exists(MODEL_PATH):
+    model = joblib.load(MODEL_PATH)
+else:
+    raise RuntimeError(f"Model file not found: {MODEL_PATH}. Run train_model.py first.")
 
 # Define feature order (MUST match training)
 FEATURE_COLUMNS = [
