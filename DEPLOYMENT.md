@@ -29,9 +29,12 @@ Your latest commit fixed the Git LFS issue. The model will be trained automatica
 | **Environment** | Python 3 |
 | **Region** | US East (or closest) |
 | **Branch** | main |
+| **Environment Variable** | `PYTHON_VERSION=3.11.11` |
 | **Build Command** | `pip install -r requirements.txt && python train_model.py` |
 | **Start Command** | `uvicorn app:app --host 0.0.0.0 --port 8000` |
 | **Plan** | Free |
+
+> If this is an existing Render service, set `PYTHON_VERSION=3.11.11` in **Environment** and trigger a **Manual Deploy**.
 
 ### 3. **Deploy**
 - Click **"Create Web Service"**
@@ -103,6 +106,10 @@ INFO:     Uvicorn running on http://0.0.0.0:8000
 - Check `requirements.txt` has all dependencies
 - Run locally: `pip install -r requirements.txt && python train_model.py`
 
+**"pandas/_libs/... _PyLong_AsByteArray ... too few arguments"**
+- Cause: Render selected Python 3.14, while pinned package versions expect Python 3.11 wheels.
+- Fix: set `PYTHON_VERSION=3.11.11` in Render service Environment, then clear build cache and redeploy.
+
 **"Model training timeout"**
 - If training takes >10 min, upgrade to Starter plan
 - Or reduce dataset size in `train_model.py`
@@ -138,6 +145,8 @@ uvicorn app:app --reload
 ├── vehicle_health_analytics.py  # Original training code
 ├── engine_data.csv           # Training dataset
 ├── requirements.txt          # Python dependencies
+├── runtime.txt               # Python runtime pin for buildpacks
+├── .python-version           # Python runtime pin for pyenv-based builders
 ├── render.yaml               # Render configuration
 ├── Procfile                  # Heroku-compatible config
 ├── README.md
