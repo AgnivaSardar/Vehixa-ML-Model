@@ -31,7 +31,7 @@ Your latest commit fixed the Git LFS issue. The model will be trained automatica
 | **Branch** | main |
 | **Environment Variable** | `PYTHON_VERSION=3.11.11` |
 | **Build Command** | `pip install -r requirements.txt && python train_model.py` |
-| **Start Command** | `uvicorn app:app --host 0.0.0.0 --port 8000` |
+| **Start Command** | `uvicorn app:app --host 0.0.0.0 --port $PORT` |
 | **Plan** | Free |
 
 > If this is an existing Render service, set `PYTHON_VERSION=3.11.11` in **Environment** and trigger a **Manual Deploy**.

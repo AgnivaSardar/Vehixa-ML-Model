@@ -1,9 +1,11 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+
 import joblib
 import pandas as pd
-import numpy as np
-import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from train_model import train_and_save_model
 
 app = FastAPI()
 
@@ -17,11 +19,29 @@ app.add_middleware(
 )
 
 # Load trained model
-MODEL_PATH = "engine_model.pkl"
-if os.path.exists(MODEL_PATH):
-    model = joblib.load(MODEL_PATH)
-else:
-    raise RuntimeError(f"Model file not found: {MODEL_PATH}. Run train_model.py first.")
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "engine_model.pkl"
+
+
+def load_or_train_model():
+    if MODEL_PATH.exists():
+        return joblib.load(MODEL_PATH)
+
+    print(f"Model file not found at {MODEL_PATH}. Training model now...")
+    if not train_and_save_model():
+        raise RuntimeError(
+            f"Model file not found: {MODEL_PATH}. Automatic training failed."
+        )
+
+    if not MODEL_PATH.exists():
+        raise RuntimeError(
+            f"Model training completed but model file is still missing: {MODEL_PATH}"
+        )
+
+    return joblib.load(MODEL_PATH)
+
+
+model = load_or_train_model()
 
 # Define feature order (MUST match training)
 FEATURE_COLUMNS = [
@@ -126,11 +146,3 @@ def predict_engine_health(data: dict):
     }
 
 from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)

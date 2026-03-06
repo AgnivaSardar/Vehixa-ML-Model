@@ -1,16 +1,26 @@
 """
 Training script - Run during Render deployment to generate engine_model.pkl
 """
+from pathlib import Path
+
 import pandas as pd
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 import sys
 
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "engine_data.csv"
+MODEL_PATH = BASE_DIR / "engine_model.pkl"
+
 def train_and_save_model():
     try:
+        if not DATA_PATH.exists():
+            raise FileNotFoundError(f"Dataset not found: {DATA_PATH}")
+
         # Load data
-        df = pd.read_csv('engine_data.csv')
+        df = pd.read_csv(DATA_PATH)
         df.columns = [col.lower().replace(' ', '_') for col in df.columns]
         
         # Prepare features and target
@@ -31,8 +41,8 @@ def train_and_save_model():
         model.fit(X_train, y_train)
         
         # Save model
-        joblib.dump(model, 'engine_model.pkl')
-        print("✓ Model trained and saved as engine_model.pkl")
+        joblib.dump(model, MODEL_PATH)
+        print(f"✓ Model trained and saved as {MODEL_PATH}")
         return True
         
     except Exception as e:
